@@ -1,48 +1,55 @@
-import { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Menu, X } from "lucide-react";
 
 const navItems = [
-  { label: 'Anasayfa', href: '#home' },
-  { label: 'Hakkımda', href: '#about' },
-  { label: 'Deneyimlerim', href: '#experience' },
-  { label: 'Portfolyo', href: '#portfolio' },
-  { label: 'Blog', href: '/blog' },
-  { label: 'İletişim', href: '/contact' },
+  { label: "Anasayfa", href: "/#home" },
+  { label: "Hakkımda", href: "/#about" },
+  { label: "Deneyimlerim", href: "/#experience" },
+  { label: "Portfolyo", href: "/#portfolio" },
+  { label: "Blog", href: "/blog" },
+  { label: "İletişim", href: "/contact" },
 ];
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll);
+
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname, location.hash]);
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-background/95 backdrop-blur-sm shadow-lg' : 'bg-transparent'
+      className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${
+        isScrolled ? "bg-background/95 shadow-lg backdrop-blur-sm" : "bg-transparent"
       }`}
     >
-      <nav className="container mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Logo */}
-        <a href="#home" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center">
-            <span className="text-primary font-bold text-xl">Y</span>
+      <nav className="container mx-auto flex items-center justify-between px-6 py-4">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card">
+            <span className="text-xl font-bold text-primary">Y</span>
           </div>
-        </a>
+        </Link>
 
-        {/* Desktop Navigation */}
-        <ul className="hidden md:flex items-center gap-8">
+        <ul className="hidden items-center gap-8 md:flex">
           {navItems.map((item) => (
             <li key={item.href}>
               <a
                 href={item.href}
-                className="text-muted-foreground hover:text-primary transition-colors duration-300 text-sm font-medium"
+                className="text-sm font-medium text-muted-foreground transition-colors duration-300 hover:text-primary"
               >
                 {item.label}
               </a>
@@ -50,25 +57,22 @@ const Header = () => {
           ))}
         </ul>
 
-        {/* Mobile Menu Button */}
         <button
-          className="md:hidden text-foreground p-2"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 text-foreground md:hidden"
+          onClick={() => setIsMobileMenuOpen((current) => !current)}
           aria-label="Toggle menu"
         >
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
 
-        {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="absolute top-full left-0 right-0 bg-background/98 backdrop-blur-md md:hidden border-b border-border">
-            <ul className="container mx-auto px-6 py-4 flex flex-col gap-4">
+          <div className="absolute left-0 right-0 top-full border-b border-border bg-background/98 backdrop-blur-md md:hidden">
+            <ul className="container mx-auto flex flex-col gap-4 px-6 py-4">
               {navItems.map((item) => (
                 <li key={item.href}>
                   <a
                     href={item.href}
-                    className="text-muted-foreground hover:text-primary transition-colors duration-300 text-sm font-medium block py-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block py-2 text-sm font-medium text-muted-foreground transition-colors duration-300 hover:text-primary"
                   >
                     {item.label}
                   </a>

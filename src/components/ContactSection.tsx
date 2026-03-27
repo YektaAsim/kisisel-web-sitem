@@ -1,14 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
-import { Phone, MapPin, Mail, Send } from 'lucide-react';
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { Mail, MapPin, Phone, Send } from "lucide-react";
+import { submitContactMessage } from "@/lib/contact";
+
+const initialForm = {
+  name: "",
+  email: "",
+  message: "",
+};
 
 const ContactSection = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [formData, setFormData] = useState(initialForm);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const sectionRef = useRef<HTMLElement>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: '',
-  });
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -17,7 +23,7 @@ const ContactSection = () => {
           setIsVisible(true);
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
 
     if (sectionRef.current) {
@@ -27,119 +33,156 @@ const ContactSection = () => {
     return () => observer.disconnect();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Form submitted:', formData);
-    // Handle form submission
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+    setSuccess(false);
+    setErrorMessage("");
+
+    try {
+      await submitContactMessage(formData);
+      setFormData(initialForm);
+      setSuccess(true);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Mesaj gonderilirken bir hata olustu.";
+      setErrorMessage(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <section id="contact" ref={sectionRef} className="py-24 bg-background">
+    <section id="contact" ref={sectionRef} className="bg-background py-24">
       <div className="container mx-auto px-6">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-6">Bana Ulaşın!</h2>
-        <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16">
-          Projen için ücret teklifi almak, aklına takılan bir soruyu sormak ya da "Merhaba!" demek için
-          mail adreslerimden bana ulaş. Sana en yakın sürede döneceğim :)
+        <h2 className="mb-6 text-center text-3xl font-bold md:text-4xl">Bana Ulasin</h2>
+        <p className="mx-auto mb-16 max-w-2xl text-center text-muted-foreground">
+          Projeniz icin teklif almak, bir soru sormak ya da sadece merhaba demek
+          icin formu doldurabilirsiniz. En kisa surede geri donerim.
         </p>
 
         <div
-          className={`grid md:grid-cols-2 gap-12 max-w-5xl mx-auto transition-all duration-700 ${
-            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          className={`mx-auto grid max-w-5xl gap-12 transition-all duration-700 md:grid-cols-2 ${
+            isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
           }`}
         >
-          {/* Contact Info */}
           <div className="space-y-8">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Phone className="w-5 h-5 text-primary" />
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <Phone className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h4 className="font-semibold mb-1">Telefon</h4>
-                <a href="tel:+905337429958" className="text-muted-foreground hover:text-primary transition-colors">
+                <h4 className="mb-1 font-semibold">Telefon</h4>
+                <a
+                  href="tel:+905337429958"
+                  className="text-muted-foreground transition-colors hover:text-primary"
+                >
                   +90 533 742 99 58
                 </a>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-5 h-5 text-primary" />
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <MapPin className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h4 className="font-semibold mb-1">Konum</h4>
+                <h4 className="mb-1 font-semibold">Konum</h4>
                 <p className="text-muted-foreground">
-                  Bursa<br />
+                  Bursa
+                  <br />
                   Osmangazi, 35433
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Mail className="w-5 h-5 text-primary" />
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <Mail className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h4 className="font-semibold mb-1">E-posta</h4>
-                <a href="mailto:yektaasim50@gmail.com" className="text-muted-foreground hover:text-primary transition-colors block">
+                <h4 className="mb-1 font-semibold">E-posta</h4>
+                <a
+                  href="mailto:yektaasim50@gmail.com"
+                  className="block text-muted-foreground transition-colors hover:text-primary"
+                >
                   yektaasim50@gmail.com
                 </a>
               </div>
             </div>
           </div>
 
-          {/* Contact Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-2">
-                Adınız
+              <label htmlFor="name" className="mb-2 block text-sm font-medium">
+                Adiniz
               </label>
               <input
                 type="text"
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:border-primary transition-colors"
-                placeholder="Adınızı girin"
+                onChange={(event) =>
+                  setFormData((current) => ({ ...current, name: event.target.value }))
+                }
+                className="w-full rounded-lg border border-border bg-card px-4 py-3 transition-colors focus:border-primary focus:outline-none"
+                placeholder="Adinizi girin"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-2">
+              <label htmlFor="email" className="mb-2 block text-sm font-medium">
                 E-posta
               </label>
               <input
                 type="email"
                 id="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:border-primary transition-colors"
+                onChange={(event) =>
+                  setFormData((current) => ({ ...current, email: event.target.value }))
+                }
+                className="w-full rounded-lg border border-border bg-card px-4 py-3 transition-colors focus:border-primary focus:outline-none"
                 placeholder="E-posta adresinizi girin"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="message" className="block text-sm font-medium mb-2">
-                Mesajınız
+              <label htmlFor="message" className="mb-2 block text-sm font-medium">
+                Mesajiniz
               </label>
               <textarea
                 id="message"
                 value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                onChange={(event) =>
+                  setFormData((current) => ({ ...current, message: event.target.value }))
+                }
                 rows={5}
-                className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:border-primary transition-colors resize-none"
-                placeholder="Mesajınızı yazın"
+                className="w-full resize-none rounded-lg border border-border bg-card px-4 py-3 transition-colors focus:border-primary focus:outline-none"
+                placeholder="Mesajinizi yazin"
                 required
               />
             </div>
 
+            {success && (
+              <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-500">
+                Mesajiniz basariyla gonderildi.
+              </div>
+            )}
+
+            {errorMessage && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                {errorMessage}
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
             >
               <Send size={18} />
-              Gönder
+              {loading ? "Gonderiliyor..." : "Gonder"}
             </button>
           </form>
         </div>

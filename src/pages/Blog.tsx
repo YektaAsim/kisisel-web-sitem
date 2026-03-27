@@ -1,153 +1,211 @@
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useEffect, useState } from "react";
+import Footer from "@/components/Footer";
+import Header from "@/components/Header";
+import { supabase } from "@/lib/supabase";
 
 interface BlogPost {
-  id: number
-  title: string
-  content: string
-  created_at: string
+  id: number;
+  title: string;
+  content: string;
+  created_at: string;
 }
 
-export default function Blog() {
-  const [posts, setPosts] = useState<BlogPost[]>([])
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [loading, setLoading] = useState(false)
+const emptyForm = {
+  title: "",
+  content: "",
+};
 
-  // SELECT - Tüm postları getir
+export default function Blog() {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const fetchPosts = async () => {
+    setLoading(true);
+    setErrorMessage("");
+
     const { data, error } = await supabase
-      .from('blog_posts')
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (!error && data) setPosts(data)
-  }
+      .from("blog_posts")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setPosts([]);
+      setErrorMessage(error.message);
+    } else {
+      setPosts(data ?? []);
+    }
+
+    setLoading(false);
+  };
 
   useEffect(() => {
-    fetchPosts()
-  }, [])
+    fetchPosts();
+  }, []);
 
-  // CREATE - Yeni post ekle
-  const handleCreate = async () => {
-    if (!title || !content) return
-    setLoading(true)
-    const { error } = await supabase
-      .from('blog_posts')
-      .insert([{ title, content }])
-    if (!error) {
-      setTitle('')
-      setContent('')
-      fetchPosts()
+  const resetForm = () => {
+    setForm(emptyForm);
+    setEditingId(null);
+  };
+
+  const handleSave = async () => {
+    if (!form.title.trim() || !form.content.trim()) {
+      setErrorMessage("Başlık ve içerik alanlarını doldurun.");
+      return;
     }
-    setLoading(false)
-  }
 
-  // UPDATE - Post güncelle
-  const handleUpdate = async () => {
-    if (!editingId || !title || !content) return
-    setLoading(true)
-    const { error } = await supabase
-      .from('blog_posts')
-      .update({ title, content })
-      .eq('id', editingId)
-    if (!error) {
-      setTitle('')
-      setContent('')
-      setEditingId(null)
-      fetchPosts()
+    setSaving(true);
+    setErrorMessage("");
+
+    const query = editingId
+      ? supabase.from("blog_posts").update(form).eq("id", editingId)
+      : supabase.from("blog_posts").insert([form]);
+
+    const { error } = await query;
+
+    if (error) {
+      setErrorMessage(error.message);
+    } else {
+      resetForm();
+      await fetchPosts();
     }
-    setLoading(false)
-  }
 
-  // DELETE - Post sil
+    setSaving(false);
+  };
+
   const handleDelete = async (id: number) => {
-    const { error } = await supabase
-      .from('blog_posts')
-      .delete()
-      .eq('id', id)
-    if (!error) fetchPosts()
-  }
+    setErrorMessage("");
+
+    const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    if (editingId === id) {
+      resetForm();
+    }
+
+    await fetchPosts();
+  };
 
   const handleEdit = (post: BlogPost) => {
-    setEditingId(post.id)
-    setTitle(post.title)
-    setContent(post.content)
-  }
+    setEditingId(post.id);
+    setForm({
+      title: post.title,
+      content: post.content,
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-background py-20 px-4">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-4xl font-bold mb-10 text-center">Blog</h1>
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <main className="px-4 py-28">
+        <div className="mx-auto max-w-3xl">
+          <h1 className="mb-4 text-center text-4xl font-bold">Blog</h1>
+          <p className="mb-10 text-center text-muted-foreground">
+            Blog içeriklerini buradan yönetebilir ve yayınlanan yazıları listeleyebilirsiniz.
+          </p>
 
-        {/* Form */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-10">
-          <h2 className="text-xl font-semibold mb-4">
-            {editingId ? 'Yazıyı Düzenle' : 'Yeni Yazı Ekle'}
-          </h2>
-          <input
-            className="w-full bg-background border border-border rounded-lg px-4 py-2 mb-3 text-foreground"
-            placeholder="Başlık"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-          />
-          <textarea
-            className="w-full bg-background border border-border rounded-lg px-4 py-2 mb-3 text-foreground h-32 resize-none"
-            placeholder="İçerik"
-            value={content}
-            onChange={e => setContent(e.target.value)}
-          />
-          <div className="flex gap-3">
-            <button
-              onClick={editingId ? handleUpdate : handleCreate}
-              disabled={loading}
-              className="bg-primary text-primary-foreground px-6 py-2 rounded-lg font-medium hover:opacity-90 transition"
-            >
-              {loading ? 'Kaydediliyor...' : editingId ? 'Güncelle' : 'Ekle'}
-            </button>
-            {editingId && (
-              <button
-                onClick={() => { setEditingId(null); setTitle(''); setContent('') }}
-                className="border border-border px-6 py-2 rounded-lg font-medium hover:opacity-90 transition"
-              >
-                İptal
-              </button>
-            )}
-          </div>
-        </div>
+          <section className="mb-10 rounded-xl border border-border bg-card p-6">
+            <h2 className="mb-4 text-xl font-semibold">
+              {editingId ? "Yazıyı Düzenle" : "Yeni Yazı Ekle"}
+            </h2>
 
-        {/* Post Listesi */}
-        <div className="space-y-6">
-          {posts.length === 0 && (
-            <p className="text-center text-muted-foreground">Henüz yazı yok.</p>
-          )}
-          {posts.map(post => (
-            <div key={post.id} className="bg-card border border-border rounded-xl p-6">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-semibold">{post.title}</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(post)}
-                    className="text-sm px-3 py-1 border border-border rounded-lg hover:opacity-80 transition"
-                  >
-                    Düzenle
-                  </button>
-                  <button
-                    onClick={() => handleDelete(post.id)}
-                    className="text-sm px-3 py-1 bg-destructive text-destructive-foreground rounded-lg hover:opacity-80 transition"
-                  >
-                    Sil
-                  </button>
-                </div>
+            <input
+              className="mb-3 w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground"
+              placeholder="Başlık"
+              value={form.title}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, title: event.target.value }))
+              }
+            />
+
+            <textarea
+              className="mb-3 h-32 w-full resize-none rounded-lg border border-border bg-background px-4 py-2 text-foreground"
+              placeholder="İçerik"
+              value={form.content}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, content: event.target.value }))
+              }
+            />
+
+            {errorMessage && (
+              <div className="mb-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                {errorMessage}
               </div>
-              <p className="text-muted-foreground whitespace-pre-wrap">{post.content}</p>
-              <p className="text-xs text-muted-foreground mt-3">
-                {new Date(post.created_at).toLocaleDateString('tr-TR')}
-              </p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="rounded-lg bg-primary px-6 py-2 font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {saving ? "Kaydediliyor..." : editingId ? "Güncelle" : "Ekle"}
+              </button>
+
+              {editingId && (
+                <button
+                  onClick={resetForm}
+                  className="rounded-lg border border-border px-6 py-2 font-medium transition hover:opacity-90"
+                >
+                  İptal
+                </button>
+              )}
             </div>
-          ))}
+          </section>
+
+          <section className="space-y-6">
+            {loading && (
+              <div className="rounded-xl border border-border bg-card p-6 text-center text-muted-foreground">
+                Yazılar yükleniyor...
+              </div>
+            )}
+
+            {!loading && posts.length === 0 && (
+              <div className="rounded-xl border border-border bg-card p-6 text-center text-muted-foreground">
+                Henüz blog yazısı bulunmuyor.
+              </div>
+            )}
+
+            {!loading &&
+              posts.map((post) => (
+                <article key={post.id} className="rounded-xl border border-border bg-card p-6">
+                  <div className="mb-2 flex items-start justify-between gap-4">
+                    <h3 className="text-xl font-semibold">{post.title}</h3>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(post)}
+                        className="rounded-lg border border-border px-3 py-1 text-sm transition hover:opacity-80"
+                      >
+                        Düzenle
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(post.id)}
+                        className="rounded-lg bg-destructive px-3 py-1 text-sm text-destructive-foreground transition hover:opacity-80"
+                      >
+                        Sil
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="whitespace-pre-wrap text-muted-foreground">{post.content}</p>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    {new Date(post.created_at).toLocaleDateString("tr-TR")}
+                  </p>
+                </article>
+              ))}
+          </section>
         </div>
-      </div>
+      </main>
+      <Footer />
     </div>
-  )
+  );
 }
