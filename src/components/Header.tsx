@@ -6,8 +6,8 @@ const navItems = [
   { label: 'Hakkımda', href: '#about' },
   { label: 'Deneyimlerim', href: '#experience' },
   { label: 'Portfolyo', href: '#portfolio' },
-  { label: 'Blog', href: '#blog' },
-  { label: 'İletişim', href: '#contact' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'İletişim', href: '/contact' },
 ];
 
 const Header = () => {
